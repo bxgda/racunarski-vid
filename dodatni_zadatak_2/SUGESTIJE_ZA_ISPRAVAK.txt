@@ -1,0 +1,13 @@
+# ODGOVOR OD GEMINI NA FEEDBACK NA main.py
+
+Da, profesori obično pod tim "drugačije" misle na prelazak sa obične klasifikacije (pogodi šta je na sličici) na pravi object detection (pronađi i pogodi u isto vreme).
+
+Evo tri "skroz drugačija" načina na koja je to moglo da se reši bez ikakvog ručnog filtriranja površine (area < 100):
+
+1. Sliding Window (Metoda kliznog prozora)Umesto da koristiš OpenCV konture da "napipaš" gde su slova, ti bi napravio prozor (npr. 32x32 piksela) koji se pomera po celoj slici, piksel po piksel (ili sa malim skokom).Kako radi: Svaki kvadrat koji prozor "vidi", šalje se tvom AI modelu.Zašto je bolje: Model proverava bukvalno sve. Ne zanima ga da li je nešto kontura, da li je šum ili mrlja. Ako prozor pređe preko nečega što liči na "P", model će reći "0.99" i tu crtaš kvadrat.Mana: Jako je sporo jer AI mora da proverava hiljade malih kvadrata na jednoj slici.
+
+2. YOLO (You Only Look Once) ili SSD arhitekturaOvo je "zlatni standard" u industriji. Tvoj trenutni model je naučen da odgovori na pitanje: "Evo ti sličica, šta je na njoj?". YOLO model uči da odgovori na: "Evo ti cela slika, reci mi gde su sva slova P i nacrtaj mi kvadrate oko njih".Kako radi: Model unutar sebe ima slojeve koji sami predviđaju koordinate $(x, y, w, h)$.Zašto je bolje: Nema OpenCV-a, nema findContours, nema thresholding-a. Sve radi jedna jedina neuronska mreža.Zašto nismo to radili: Za YOLO ti treba bar 500-1000 označenih slika, a ti si imao samo 19.
+
+3. Topološko filtriranje (Analiza "rupa")Slovo "P" ima jednu specifičnu osobinu – ono ima jednu rupu (zatvorenu konturu unutar otvorene).Kako radi: Umesto da gledaš površinu u pikselima, mogao si da kažeš: "OpenCV, nađi mi sve konture koje unutar sebe imaju tačno jednu drugu konturu (rupu)".Zašto je bolje: To radi bez obzira na to da li je slovo veliko 10 ili 1000 piksela. Geometrija slova P ostaje ista.
+
+Šta je zapravo "najprofesionalnije" rešenje koje je on očekivao?Verovatno je mislio na to da koristiš NMS (Non-Maximum Suppression) u kombinaciji sa Heuristic-free detection. To bi značilo:Pustiš OpenCV da nađe apsolutno svaku konturu (čak i onu od 1 piksela).Sve ih pošalješ modelu.Zadržiš samo one gde je predikcija preko npr. 0.98.Ako se više kvadrata preklapa, ostaviš samo onaj sa najvećom predikcijom.Zaključak: Tvoj pristup sa area < 100 je bio "inženjerski prečica" (brzo i radi posao za tu sliku), a profesor je hteo "naučni pristup" koji ne zavisi od veličine slike.Ipak, dobio si 3 poena, što je super! Da li planiraš da mu odgovoriš na mejl i možda pitaš za dodatno objašnjenje kako bi ostavio dobar utisak za ocenu?
